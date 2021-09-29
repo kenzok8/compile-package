@@ -22,7 +22,7 @@
 <a href="https://t.me/joinchat/JjxmyRZZXJWb74I-sCrryA" target="_blank">Telegram</a>
 
 ##### 源码来源：
-[![kiddin9](https://img.shields.io/badge/packages-compile-kiddin9-red.svg?style=flat&logo=appveyor)](https://github.com/kiddin9/packages-compile)
+[![kiddin9](https://img.shields.io/badge/compile-kiddin9-red.svg?style=flat&logo=appveyor)](https://github.com/kiddin9/packages-compile)
 
 ##### 插件每日更新下载:
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/kenzok8/compile-package?style=for-the-badge&label=插件更新下载)](https://github.com/kenzok8/compile-package/releases/latest)
