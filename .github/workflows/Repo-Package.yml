@@ -1,0 +1,47 @@
+#=================================================
+# https://github.com/P3TERX/Actions-OpenWrt
+# Description: Build OpenWrt using GitHub Actions
+# Lisence: MIT
+# Author: P3TERX
+# Blog: https://p3terx.com
+#=================================================
+
+name: Repo Dispatcher
+
+on: 
+  # push: 
+  #   branches:
+  #     - master
+  schedule:
+    - cron: 30 0 * * *
+  watch:
+    types: started
+
+env:
+  REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: Ubuntu-20.04
+    steps:
+    - name: cancel running workflows
+      uses: styfle/cancel-workflow-action@main
+      with:
+        workflow_id: Auto-Package.yml,Repo-Package.yml
+        access_token: ${{ github.token }}
+
+    - name: Trigger matrix Update
+      run: |
+        gitdate=$(curl -H "Authorization: token ${{ secrets.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/commits?&per_page=1" | jq -r '.[0].commit.committer.date')
+        gitdate=$(date -d "$gitdate" +%s)
+        now=$(date -d "$(date '+%Y-%m-%d %H:%M:%S')" +%s)
+        if [[ $(expr $gitdate + 90000) < $now ]]; then
+          exit;
+        fi
+        curl \
+        -X POST https://api.github.com/repos/${{ github.repository }}/dispatches \
+        -H "Accept: application/vnd.github.everest-preview+json" \
+        -H "Authorization: token ${{ secrets.REPO_TOKEN }}" \
+        -d '{"event_type": "x86_64", "client_payload": {"target": "x86_64"}}'
+
