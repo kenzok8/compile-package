@@ -1,0 +1,13 @@
+--- a/Config.in
++++ b/Config.in
+@@ -18,6 +18,10 @@ menu "Global build settings"
+ 		bool "Cryptographically sign package lists"
+ 		default y
+ 
++	config SIGNATURE_CHECK
++		bool "Enable signature checking in opkg"
++		default SIGNED_PACKAGES
++
+ endmenu
+ 
+ menu "Advanced configuration options (for developers)"
