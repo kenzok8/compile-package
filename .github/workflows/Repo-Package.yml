@@ -13,9 +13,15 @@ on:
   #   branches:
   #     - master
   schedule:
-    - cron: 30 1 * * *
+    - cron: 30 15 * * *
   watch:
     types: started
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: 'Packages'
+        required: true
+        default: 'luci-app-'
 
 env:
   REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
