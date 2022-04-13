@@ -77,8 +77,8 @@ jobs:
       run: |
         gitdate=$(curl -H "Authorization: token ${{ secrets.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].created_at')
         gitdate=$(date -d "$gitdate" +%s)
-        now=$(date -d "$(date '+%Y-%m-%d %H:%M:%S')" +%s)
-        if [[ $(expr $gitdate + 60) < $now ]]; then
+        now=$(date -d "$(date)" +%s)
+        if [[ $(expr $gitdate + 120) < $now ]]; then
         curl -X POST https://api.github.com/repos/kenzok8/small-package/dispatches \
         -H "Accept: application/vnd.github.everest-preview+json" \
         -H "Authorization: token ${{ secrets.REPO_TOKEN }}" \
