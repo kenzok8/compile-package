@@ -291,17 +291,17 @@ jobs:
         name: ${{ env.date3 }} ${{ env.MTARGET }}
         path: ${{ env.FIRMWARE }}
 
-    - name: deploy files to server
-      uses: easingthemes/ssh-deploy@main
-      if: env.SSH_PRIVATE_KEY && ! contains(github.event.action, 'noser')
-      with:
-        SSH_PRIVATE_KEY: ${{ env.SSH_PRIVATE_KEY }}
-        ARGS: "-avzr"
-        SOURCE: "packages/"
-        REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-        REMOTE_PORT: ${{ secrets.REMOTE_PORT }}
-        REMOTE_USER: root
-        TARGET: "/www/wwwroot/${{ secrets.REMOTE_HOST }}/packages/${{ env.MTARGET }}/"
+    #- name: deploy files to server
+    #  uses: easingthemes/ssh-deploy@main
+    #  if: env.SSH_PRIVATE_KEY && ! contains(github.event.action, 'noser')
+    #  with:
+    #    SSH_PRIVATE_KEY: ${{ env.SSH_PRIVATE_KEY }}
+    #    ARGS: "-avzr"
+    #    SOURCE: "packages/"
+    #    REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+    #    REMOTE_PORT: ${{ secrets.REMOTE_PORT }}
+    #    REMOTE_USER: root
+    #    TARGET: "/www/wwwroot/${{ secrets.REMOTE_HOST }}/packages/${{ env.MTARGET }}/"
 
     - name: WeChat notification
       continue-on-error: true
