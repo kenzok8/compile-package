@@ -28,7 +28,7 @@ env:
 
 jobs:
   build:
-    runs-on: Ubuntu-20.04
+    runs-on: ubuntu-latest
     
     name: Build ${{matrix.target}}
     strategy:
@@ -315,7 +315,7 @@ jobs:
         # [ ${{ env.status }} == 'success' ] && curl -k --data chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" --data "text=🎉 OpenWrt ${{ env.date3 }} ${{ env.MTARGET }} 软件仓库已更新 😋  ${{ env.COWURL }}   ${{ env.WETRANS }} 🚀" "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage"
 
     - name: Delete workflow runs
-      uses: GitRML/delete-workflow-runs@main
+      uses: Mattraks/delete-workflow-runs@main
       continue-on-error: true
       with:
         retain_days: 1
