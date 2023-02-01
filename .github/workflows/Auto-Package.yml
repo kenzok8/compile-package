@@ -236,7 +236,7 @@ jobs:
         if [[ $(ls -l openwrt/error* | grep "^-" | wc -l) -le 0 ]]; then
            echo "NAME=${Emoji[$[$RANDOM % ${#Emoji[@]}]]} ${{ env.date2 }} ${{ env.MTARGET }} ${{ env.EMOJI }}" >> $GITHUB_ENV
         else
-           echo "NAME=❌ ${{ env.date2 }} ${{ env.MTARGET }} ❌" >> $GITHUB_ENV
+           echo "NAME=🎨 ${{ env.date2 }} ${{ env.MTARGET }} 🎨" >> $GITHUB_ENV
         fi
 
     - name: Upload firmware to cowtransfer
