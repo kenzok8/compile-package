@@ -1,4 +1,4 @@
-### jell-compile
+###  small-package-compile
 [1]: https://img.shields.io/badge/license-GPLV2-brightgreen.svg
 [2]: /LICENSE
 [3]: https://img.shields.io/badge/PRs-welcome-brightgreen.svg
@@ -29,7 +29,7 @@
 
 ##### 特色:
 
- openwrt下jell包插件x86编译.
+ openwrt下small-package包插件x86编译..
 
  .* 编译所有软件包
 
