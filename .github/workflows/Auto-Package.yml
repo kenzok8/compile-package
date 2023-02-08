@@ -82,7 +82,7 @@ jobs:
         curl -X POST https://api.github.com/repos/kenzok8/small-package/dispatches \
         -H "Accept: application/vnd.github.everest-preview+json" \
         -H "Authorization: token ${{ secrets.REPO_TOKEN }}" \
-        --data '{"event_type": "update compiling"}'
+        --data '{"event_type": "repo small"}'
         fi
 
     - name: Initialization environment
