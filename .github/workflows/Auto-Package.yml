@@ -100,7 +100,7 @@ jobs:
     - name: Get current date
       id: date
       run: |
-        echo "date1=$(date +'%Y.%m.%d-%H:%M')" >> $GITHUB_ENV
+        echo "date1=$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_ENV
         echo "date2=$(date +'%m/%d %Y')" >> $GITHUB_ENV
         echo "date3=$(date +'%m.%d')" >> $GITHUB_ENV
 
