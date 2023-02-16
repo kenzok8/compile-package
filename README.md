@@ -9,7 +9,7 @@
 [8]: https://github.com/kenzok8/compile-package/releases
 [10]: https://img.shields.io/badge/Contact-telegram-blue
 [11]: https://t.me/joinchat/JjxmyRZZXJWb74I-sCrryA
-[12]: https://github.com/kenzok8/compile-package/workflows/autobuild/badge.svg
+[12]: https://github.com/kenzok8/compile-package/actions/workflows/Auto-Package.yml/badge.svg
 [13]: https://github.com/kenzok8/compile-package/actions
 
 [![license][1]][2]
