@@ -270,7 +270,7 @@ jobs:
         [ ${{ env.NOTICE }} ] && echo -e "${{ env.NOTICE }}" >> release.txt || true
 
     - name: Upload packages for release
-      uses: softprops/action-gh-release@59c3b4891632ff9a897f99a91d7bc557467a3a22
+      uses: softprops/action-gh-release@v0.1.15
       continue-on-error: true
       if: env.REPO_TOKEN && env.UPLOAD_FIRMWARE_FOR_RELEASE == 'true'
       env:
