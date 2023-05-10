@@ -20,8 +20,8 @@ on:
     inputs:
       packages:
         description: 'Packages'
-        required: true
-        default: 'luci-app-'
+        required: false
+        default: ''
 
 env:
   REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
