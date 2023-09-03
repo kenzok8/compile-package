@@ -34,10 +34,10 @@ jobs:
       matrix:
         target: ["${{ github.event.client_payload.target }}"]
     steps:
-    - name: Set up Go 1.21
+    - name: Set up Go 1.20
       uses: actions/setup-go@v2
       with:
-        go-version: 1.21
+        go-version: 1.20
 
     - name: Checkout
       uses: actions/checkout@main
