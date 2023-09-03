@@ -29,6 +29,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ["${{ github.event.client_payload.target }}"]
     steps:
     - name: Set up Go 1.21
       uses: actions/setup-go@v2
@@ -39,7 +43,7 @@ jobs:
       uses: actions/checkout@main
 
     - name: Build ${{matrix.target}}
-      run: echo "Build for ${{ github.event.client_payload.target }}"
+      run: echo "Build for ${{ matrix.target }}"
 
     - name: cancel running workflows
       uses: styfle/cancel-workflow-action@main
