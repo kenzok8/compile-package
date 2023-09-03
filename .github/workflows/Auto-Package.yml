@@ -33,12 +33,8 @@ jobs:
       fail-fast: false
       matrix:
         target: ["${{ github.event.client_payload.target }}"]
-    steps:
-    - name: Set up Go 1.20
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.20
 
+    steps:
     - name: Checkout
       uses: actions/checkout@main
 
