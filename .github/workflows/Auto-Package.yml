@@ -174,7 +174,7 @@ jobs:
       run: |
         cd openwrt
         rm -rf feeds/packages/lang/golang
-        git clone https://github.com/sbwml/packages_lang_golang -b 20.x feeds/packages/lang/golang
+        git clone https://github.com/sbwml/packages_lang_golang -b 21.x feeds/packages/lang/golang
         make defconfig
         mv -f package/feeds/custom custom.b
         mv -f feeds/packages/lang feeds/packages/lang.b
