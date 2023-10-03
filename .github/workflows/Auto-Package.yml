@@ -108,7 +108,7 @@ jobs:
 
     - name: Clone source code
       run: |
-        #REPO_BRANCH="$(curl -s https://api.github.com/repos/openwrt/openwrt/tags | jq -r '.[].name' | grep v22 | head -n 1 | sed -e 's/v//')"
+        #REPO_BRANCH="$(curl -s https://api.github.com/repos/openwrt/openwrt/tags | jq -r '.[].name' | grep v23 | head -n 1 | sed -e 's/v//')"
         REPO_BRANCH="23.05-SNAPSHOT"
         if [ ${{matrix.target}} == "ac2100" ]; then
             curl -fL -m 60 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ramips/mt7621/openwrt-sdk-$REPO_BRANCH-ramips-mt7621_gcc-8.4.0_musl.Linux-x86_64.tar.xz
