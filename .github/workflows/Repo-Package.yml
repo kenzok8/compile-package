@@ -34,13 +34,13 @@ jobs:
     - name: Trigger matrix Update
       run: |
         gitdate=$(curl -H "Authorization: token ${{ secrets.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/commits?&per_page=1" | jq -r '.[0].commit.committer.date')
-        fpkg="$(echo "${{github.event.inputs.packages}}" | sed -e 's/\(aarch64_generic\|x86_64\|aarch64_cortex-a72\|nanopi-r2s\|Rpi-4B\|N1\|ac2100\| [0-9][0-9.]*\| ssh\| noser\| cw\)//g' | sed -e 's/ //g')"
+        fpkg="$(echo "${{github.event.inputs.packages}}" | sed -e 's/\(aarch64_generic\|x86_64\|aarch64_cortex-a72\|arm_cortex-a7_neon-vfpv4\| [0-9][0-9.]*\| ssh\| noser\| cw\)//g' | sed -e 's/ //g')"
         during="$(echo "${{github.event.inputs.packages}}" | grep -o -E ' [0-9][0-9.]*' | sed -e 's/ //')"
         [[ "$fpkg" && ! "$during" ]] || {
           [ "$during" ] || during="1.05"
           durings=`echo "$during*60*60*24" | bc`
           gitdate=$(date -d "$gitdate" +%s)
-          now=$(date -d "$(date '+%Y-%m-%d %H:%M:%S')" +%s)
+          now=$(date -d "$(date)" +%s)
           [ "$during" ] || during="1.05"
           durings=`echo "$during*60*60*24" | bc`
           if [[ $(expr $gitdate + ${durings%.*}) -lt $now ]]; then
@@ -56,12 +56,27 @@ jobs:
           -X POST https://api.github.com/repos/${{ github.repository }}/dispatches \
           -H "Accept: application/vnd.github.everest-preview+json" \
           -H "Authorization: token ${{ secrets.REPO_TOKEN }}" \
-          -d '{"event_type": "aarch64_generic ${{ github.event.inputs.packages }}", "client_payload": {"target": "nanopi-r2s"}}'
+          -d '{"event_type": "aarch64_generic ${{ github.event.inputs.packages }}", "client_payload": {"target": "aarch64_generic"}}'
           curl \
           -X POST https://api.github.com/repos/${{ github.repository }}/dispatches \
           -H "Accept: application/vnd.github.everest-preview+json" \
           -H "Authorization: token ${{ secrets.REPO_TOKEN }}" \
-          -d '{"event_type": "aarch64_cortex-a72 ${{ github.event.inputs.packages }}", "client_payload": {"target": "Rpi-4B"}}'
+          -d '{"event_type": "aarch64_cortex-a72 ${{ github.event.inputs.packages }}", "client_payload": {"target": "aarch64_cortex-a72"}}'
+          curl \
+          -X POST https://api.github.com/repos/${{ github.repository }}/dispatches \
+          -H "Accept: application/vnd.github.everest-preview+json" \
+          -H "Authorization: token ${{ secrets.REPO_TOKEN }}" \
+          -d '{"event_type": "aarch64_cortex-a53 ${{ github.event.inputs.packages }}", "client_payload": {"target": "aarch64_cortex-a53"}}'
+          curl \
+          -X POST https://api.github.com/repos/${{ github.repository }}/dispatches \
+          -H "Accept: application/vnd.github.everest-preview+json" \
+          -H "Authorization: token ${{ secrets.REPO_TOKEN }}" \
+          -d '{"event_type": "mipsel_24kc ${{ github.event.inputs.packages }}", "client_payload": {"target": "mipsel_24kc"}}'
+          curl \
+          -X POST https://api.github.com/repos/${{ github.repository }}/dispatches \
+          -H "Accept: application/vnd.github.everest-preview+json" \
+          -H "Authorization: token ${{ secrets.REPO_TOKEN }}" \
+          -d '{"event_type": "arm_cortex-a7_neon-vfpv4 ${{ github.event.inputs.packages }}", "client_payload": {"target": "arm_cortex-a7_neon-vfpv4"}}'
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
