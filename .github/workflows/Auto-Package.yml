@@ -69,13 +69,13 @@ jobs:
 
     - name: Trigger Packages Update
       run: |
-        gitdate=$(curl -H "Authorization: token ${{ secrets.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].created_at')
+        gitdate=$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].created_at')
         gitdate=$(date -d "$gitdate" +%s)
         now=$(date -d "$(date)" +%s)
-        if [[ $(expr $gitdate + 180) < $now ]]; then
+        if [[ $(expr $gitdate + 120) < $now ]]; then
         curl -X POST https://api.github.com/repos/kenzok8/small-package/dispatches \
         -H "Accept: application/vnd.github.everest-preview+json" \
-        -H "Authorization: token ${{ secrets.REPO_TOKEN }}" \
+        -H "Authorization: token ${{ env.REPO_TOKEN }}" \
         --data '{"event_type": "update small"}'
         fi
 
@@ -177,7 +177,7 @@ jobs:
           echo >> .config
           cat devices/${{matrix.target}}/.config >> .config
         fi
-        #if [[ ${{github.actor}} == "custom" ]]; then
+        #if [[ ${{github.actor}} == "kenzok8" ]]; then
           #sed -i "s/index()/index()\nif luci.sys.exec(\"cat \/etc\/openwrt_release | grep -o -E ^DISTRIB_DESCRIPTION='.*(kenzo|Kenzo) == \"\" then return end/g" package/feeds/custom/luci-app*/luasrc/controller/*.lua
         #fi
 
