@@ -18,10 +18,13 @@ on:
 
 env:
   REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
+  PPPOE_USERNAME: ${{ secrets.PPPOE_USERNAME }}
+  PPPOE_PASSWD: ${{ secrets.PPPOE_PASSWD }}
   SCKEY: ${{ secrets.SCKEY }}
-  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
   REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
   REMOTE_PORT: ${{ secrets.REMOTE_PORT }}
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+  PASSWORD: ${{ secrets.PASSWORD }}
   TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
   TZ: Asia/Shanghai
@@ -29,24 +32,25 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    name: Build ${{matrix.target}}
     strategy:
       fail-fast: false
       matrix:
         target: ["${{ github.event.client_payload.target }}"]
-
+        
     steps:
     - name: Checkout
       uses: actions/checkout@main
-
-    - name: Build ${{matrix.target}}
-      run: echo "Build for ${{ matrix.target }}"
+      with:
+        fetch-depth: 0
 
     - name: cancel running workflows
       uses: styfle/cancel-workflow-action@main
       if: contains(github.event.action, 'cw')
       with:
         workflow_id: 13660847
-        access_token: ${{ github.token }} 
+        access_token: ${{ github.token }}
 
     - name: Load Settings.ini
       run: |
@@ -68,11 +72,11 @@ jobs:
         gitdate=$(curl -H "Authorization: token ${{ secrets.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].created_at')
         gitdate=$(date -d "$gitdate" +%s)
         now=$(date -d "$(date)" +%s)
-        if [[ $(expr $gitdate + 240) < $now ]]; then
+        if [[ $(expr $gitdate + 180) < $now ]]; then
         curl -X POST https://api.github.com/repos/kenzok8/small-package/dispatches \
         -H "Accept: application/vnd.github.everest-preview+json" \
         -H "Authorization: token ${{ secrets.REPO_TOKEN }}" \
-        --data '{"event_type": "repo small"}'
+        --data '{"event_type": "update small"}'
         fi
 
     - name: Initialization environment
@@ -91,7 +95,7 @@ jobs:
     - name: Get current date
       id: date
       run: |
-        echo "date1=$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_ENV
+        echo "date=$(date +'%m/%d_%Y_%H/%M')" >> $GITHUB_ENV
         echo "date2=$(date +'%m/%d %Y')" >> $GITHUB_ENV
         echo "date3=$(date +'%m.%d')" >> $GITHUB_ENV
 
@@ -99,19 +103,37 @@ jobs:
       run: |
         set -v
         REPO_BRANCH="23.05-SNAPSHOT"
-        echo "$REPO_BRANCH"		
+        echo "$REPO_BRANCH"
         if [ ${{matrix.target}} == "mipsel_24kc" ]; then
-            curl -fL -m 250 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ramips/mt7621/openwrt-sdk-$REPO_BRANCH-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz || curl -fL -m 240 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/ramips/mt7621/openwrt-sdk-$REPO_BRANCH-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz  
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ramips/mt7621/openwrt-sdk-$REPO_BRANCH-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/ramips/mt7621/openwrt-sdk-$REPO_BRANCH-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz 
+        elif [ ${{matrix.target}} == "mips_24kc" ]; then
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ath79/nand/openwrt-sdk-$REPO_BRANCH-ath79-nand_gcc-12.3.0_musl.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/ath79/nand/openwrt-sdk-$REPO_BRANCH-ath79-nand_gcc-12.3.0_musl.Linux-x86_64.tar.xz 
         elif [[ ${{matrix.target}} == "x86_64" ]]; then
-            curl -fL -m 250 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/x86/64/openwrt-sdk-$REPO_BRANCH-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz || curl -fL -m 240 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/x86/64/openwrt-sdk-$REPO_BRANCH-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/x86/64/openwrt-sdk-$REPO_BRANCH-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/x86/64/openwrt-sdk-$REPO_BRANCH-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+        elif [[ ${{matrix.target}} == "i386_pentium4" ]]; then
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/x86/generic/openwrt-sdk-$REPO_BRANCH-x86-generic_gcc-12.3.0_musl.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/x86/generic/openwrt-sdk-$REPO_BRANCH-x86-generic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
         elif [[ ${{matrix.target}} == "aarch64_generic" ]]; then
-            curl -fL -m 250 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/rockchip/armv8/openwrt-sdk-$REPO_BRANCH-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz || curl -fL -m 240 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/rockchip/armv8/openwrt-sdk-$REPO_BRANCH-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/rockchip/armv8/openwrt-sdk-$REPO_BRANCH-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/rockchip/armv8/openwrt-sdk-$REPO_BRANCH-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+        elif [[ ${{matrix.target}} == "arm_arm1176jzf-s_vfp" ]]; then
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/bcm27xx/bcm2708/openwrt-sdk-$REPO_BRANCH-bcm27xx-bcm2708_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/bcm27xx/bcm2708/openwrt-sdk-$REPO_BRANCH-bcm27xx-bcm2708_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz
+        elif [[ ${{matrix.target}} == "arm_cortex-a15_neon-vfpv4" ]]; then
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ipq806x/generic/openwrt-sdk-$REPO_BRANCH-ipq806x-generic_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/ipq806x/generic/openwrt-sdk-$REPO_BRANCH-ipq806x-generic_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz
+        elif [[ ${{matrix.target}} == "arm_cortex-a5_vfpv4" ]]; then
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/at91/sama5/openwrt-sdk-$REPO_BRANCH-at91-sama5_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/at91/sama5/openwrt-sdk-$REPO_BRANCH-at91-sama5_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz
         elif [[ ${{matrix.target}} == "aarch64_cortex-a72" ]]; then
-            curl -fL -m 250 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/bcm27xx/bcm2711/openwrt-sdk-$REPO_BRANCH-bcm27xx-bcm2711_gcc-12.3.0_musl.Linux-x86_64.tar.xz || curl -fL -m 240 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/bcm27xx/bcm2711/openwrt-sdk-$REPO_BRANCH-bcm27xx-bcm2711_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/bcm27xx/bcm2711/openwrt-sdk-$REPO_BRANCH-bcm27xx-bcm2711_gcc-12.3.0_musl.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/bcm27xx/bcm2711/openwrt-sdk-$REPO_BRANCH-bcm27xx-bcm2711_gcc-12.3.0_musl.Linux-x86_64.tar.xz
         elif [[ ${{matrix.target}} == "aarch64_cortex-a53" ]]; then
-            curl -fL -m 250 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/mediatek/mt7622/openwrt-sdk-$REPO_BRANCH-mediatek-mt7622_gcc-12.3.0_musl.Linux-x86_64.tar.xz || curl -fL -m 240 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/mediatek/mt7622/openwrt-sdk-$REPO_BRANCH-mediatek-mt7622_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/mediatek/mt7622/openwrt-sdk-$REPO_BRANCH-mediatek-mt7622_gcc-12.3.0_musl.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/mediatek/mt7622/openwrt-sdk-$REPO_BRANCH-mediatek-mt7622_gcc-12.3.0_musl.Linux-x86_64.tar.xz
         elif [[ ${{matrix.target}} == "arm_cortex-a7_neon-vfpv4" ]]; then
-            curl -fL -m 250 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ipq40xx/generic/openwrt-sdk-$REPO_BRANCH-ipq40xx-generic_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz || curl -fL -m 240 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/ipq40xx/generic/openwrt-sdk-$REPO_BRANCH-ipq40xx-generic_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ipq40xx/generic/openwrt-sdk-$REPO_BRANCH-ipq40xx-generic_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ipq40xx/mikrotik/openwrt-sdk-$REPO_BRANCH-ipq40xx-mikrotik_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz
+        elif [[ ${{matrix.target}} == "arm_cortex-a7" ]]; then
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/mediatek/mt7629/openwrt-sdk-$REPO_BRANCH-mediatek-mt7629_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/mediatek/mt7629/openwrt-sdk-$REPO_BRANCH-mediatek-mt7629_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz
+        elif [[ ${{matrix.target}} == "arm_cortex-a9" ]]; then
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/bcm53xx/generic/openwrt-sdk-$REPO_BRANCH-bcm53xx-generic_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/bcm53xx/generic/openwrt-sdk-$REPO_BRANCH-bcm53xx-generic_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz
+        elif [[ ${{matrix.target}} == "arm_cortex-a9_vfpv3-d16" ]]; then
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/mvebu/cortexa9/openwrt-sdk-$REPO_BRANCH-mvebu-cortexa9_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/mvebu/cortexa9/openwrt-sdk-$REPO_BRANCH-mvebu-cortexa9_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz
+        elif [[ ${{matrix.target}} == "arm_xscale" ]]; then
+            curl -fL -m 500 -o sdk.tar.xz https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/kirkwood/generic/openwrt-sdk-$REPO_BRANCH-kirkwood-generic_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz || curl -fL -m 500 -o sdk.tar.xz https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/kirkwood/generic/openwrt-sdk-$REPO_BRANCH-kirkwood-generic_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz
         fi
 
     - name: Free up disk space
@@ -123,7 +145,7 @@ jobs:
         ln -sf /mnt/openwrt/dl openwrt/dl
         ln -sf /mnt/openwrt/build_dir/hostpkg openwrt/build_dir/hostpkg
         ln -sf /mnt/openwrt/bin openwrt/bin
-
+    
     - name: Load custom configuration
       run: |
         mkdir openwrt
@@ -155,8 +177,8 @@ jobs:
           echo >> .config
           cat devices/${{matrix.target}}/.config >> .config
         fi
-        #if [[ ${{github.actor}} == "kenzok8" ]]; then
-          #sed -i "s/index()/index()\nif luci.sys.exec(\"cat \/etc\/openwrt_release | grep -o -E ^DISTRIB_DESCRIPTION='.*(GaryPang|Kiddin)'\") == \"\" then return end/g" package/feeds/custom/luci-app*/luasrc/controller/*.lua
+        #if [[ ${{github.actor}} == "custom" ]]; then
+          #sed -i "s/index()/index()\nif luci.sys.exec(\"cat \/etc\/openwrt_release | grep -o -E ^DISTRIB_DESCRIPTION='.*(kenzo|Kenzo) == \"\" then return end/g" package/feeds/custom/luci-app*/luasrc/controller/*.lua
         #fi
 
     - name: SSH connection to Actions
@@ -166,32 +188,32 @@ jobs:
     - name: Prepare
       run: |
         cd openwrt
-        rm -rf feeds/packages/lang/golang
-        git clone https://github.com/sbwml/packages_lang_golang -b 20.x feeds/packages/lang/golang
         make defconfig
         mv -f package/feeds/custom custom.b
         mv -f feeds/packages/lang feeds/packages/lang.b
         mv -f feeds/packages feeds/packages.b
         mkdir package/feeds/custom
-        mv -f custom.b/{wxbase,lib*,rapidjson,jpcre2,quickjspp,qtbase,qttools,rblibtorrent} package/feeds/custom/
+        cp -rf custom.b/{wxbase,lib*,rapidjson,jpcre2,toml11,curl,quickjspp,qt*,libtorrent*,openssl,mbedtls,ppp,cups} package/feeds/custom/ || true
 
     - name: Compile the firmware
       run: |
         cd openwrt
           echo -e "$(($(nproc)+1)) thread compile"
-          fpkg="$(echo "${{github.event.action}}" | sed -e 's/\(aarch64_generic\|x86_64\|aarch64_cortex-a72\|nanopi-r2s\|Rpi-4B\|N1\|ac2100\| [0-9][0-9.]*\| ssh\| noser\| cw\)//g' | sed -e 's/ //g')"
+          fpkg="$(echo "${{github.event.action}}" | sed -e 's/\(aarch64_generic\|x86_64\|aarch64_cortex-a72\|arm_cortex-a7_neon-vfpv4\|mipsel_24kc\|aarch64_cortex-a53\| [0-9][0-9.]*\| ssh\| noser\| cw\)//g' | sed -e 's/ //g')"
           during="$(echo "${{github.event.action}}" | grep -o -E ' [0-9][0-9.]*' | sed -e 's/ //')"
           function comp(){
              cp -rf custom.b/$ipk package/feeds/custom/
              if [[ $ipk != luci-* ]]; then
               mv -f feeds/packages.b feeds/packages
-              [ "$(grep -E "(PKG_BUILD_DEPENDS|packages/lang|meson.mk)" package/feeds/custom/$ipk/Makefile)" ] && mv feeds/packages/lang.b feeds/packages/lang
+              mv feeds/packages/lang.b feeds/packages/lang
+              [ "$(grep "node" package/feeds/custom/$ipk/Makefile)" ] || mv feeds/packages/lang/node feeds/packages/lang/node.b
              fi
              make package/$ipk/compile -j$(($(nproc)+1)) || make package/$ipk/compile V=s >>error_$ipk.log 2>&1 || true
              if [[ $ipk != luci-* ]]; then
-              mv feeds/packages/lang feeds/packages/lang.b || true
+              mv -f feeds/packages/lang feeds/packages/lang.b 2>/dev/null || true
+              mv -f feeds/packages/lang.b/node.b feeds/packages/lang.b/node 2>/dev/null || true
               mv -f feeds/packages feeds/packages.b
-              rm -f package/feeds/custom/$ipk
+              rm -rf package/feeds/custom/$ipk
              fi
             }
           for ipk in $(ls custom.b | grep -E "$fpkg"); do
@@ -202,13 +224,10 @@ jobs:
               gitdate=$(curl -H "Authorization: token ${{ secrets.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/commits?path=$ipk&per_page=1" | jq -r '.[0].commit.committer.date')
               if [ $gitdate != null ]; then
                 gitdate=$(date -d "$gitdate" +%s)
-                now=$(date -d "$(date '+%Y-%m-%d %H:%M:%S')" +%s)
+                now=$(date -d "$(date)" +%s)
                 [ "$during" ] || during="1.05"
                 durings=`echo "$during*60*60*24" | bc`
                 if [[ $(($gitdate + ${durings%.*})) -gt $now ]]; then
-                echo "$gitdate"
-                echo "${durings%.*}"
-                echo "$now"
                   comp
                 fi
               fi
@@ -224,16 +243,16 @@ jobs:
       run: |
         mkdir packages
         mv -f openwrt/bin/packages/*/custom/* packages || true
-        mv -f openwrt/.config packages/ || true
+        mv -f openwrt/.config packages/${{matrix.target}}.config || true
         mv -f openwrt/bin/targets/*/*/packages/base-files* packages/ || true
         # cp -Rf openwrt/bin/packages/*/packages/python3* packages/
         echo "FIRMWARE=$PWD/packages" >> $GITHUB_ENV
         Emoji=("🎉" "🤞" "✨" "🎁" "🎈" "🎄" "🎨" "💋" "🍓" "🍕" "🍉" "💐" "🌴" "🚀" "🛸" "🗽" "⛅" "🌈" "🔥" "⛄" "🐶" "🏅" "🦄" "🐤")
         echo "EMOJI=${Emoji[$[$RANDOM % ${#Emoji[@]}]]}" >> $GITHUB_ENV
         if [[ $(ls -l openwrt/error* | grep "^-" | wc -l) -le 0 ]]; then
-           echo "NAME=${Emoji[$[$RANDOM % ${#Emoji[@]}]]} ${{ env.date2 }} ${{ env.MTARGET }} ${{ env.EMOJI }}" >> $GITHUB_ENV
+           echo "NAME=${Emoji[$[$RANDOM % ${#Emoji[@]}]]} ${{ env.date2 }} ${{matrix.target}} ${{ env.EMOJI }}" >> $GITHUB_ENV
         else
-           echo "NAME=🎨 ${{ env.date2 }} ${{ env.MTARGET }} 🎨" >> $GITHUB_ENV
+           echo "NAME=🔥 ${{ env.date2 }} ${{matrix.target}} 🔥" >> $GITHUB_ENV
         fi
 
     - name: Upload firmware to cowtransfer
@@ -244,7 +263,7 @@ jobs:
         cowurl=$(./transfer cow --block 2621440 -s --no-progress ${FIRMWARE})
         cowurl=$(echo $cowurl | grep -o -E "https[^ ]*")
         echo "COWURL=$cowurl" >> $GITHUB_ENV
-        echo "Download Link: ${{ env.EMOJI }} $cowurl ${{ env.EMOJI }} 🎈"
+        echo "Download Link: ${{ env.EMOJI }} $cowurl ${{ env.EMOJI }} 🚀"
  
     - name: Upload firmware to WeTransfer
       if: env.UPLOAD_FIRMWARE_TO_WETRANSFER == 'true'
@@ -254,20 +273,20 @@ jobs:
         wetrans=$(./transfer wet -s -p 16 --no-progress ${FIRMWARE})
         wetrans=$(echo $wetrans | grep -o -E "https[^ ]*")
         echo "WETRANS=$wetrans" >> $GITHUB_ENV
-        echo "Download Link: ${{ env.EMOJI }} $wetrans ${{ env.EMOJI }}🎈"
+        echo "Download Link: ${{ env.EMOJI }} $wetrans ${{ env.EMOJI }} 🚀"
         
     - name: Create release
       id: create_release
       if: env.REPO_TOKEN && env.UPLOAD_FIRMWARE_FOR_RELEASE == 'true'
       continue-on-error: true
       run: |
-        echo -e "已经更新插件,默认24小时内对仓库拉取新代码的插件更新🎈:\n" >> release.txt
+        echo -e "定时更新插件，推送发布 🎈:\n" >> release.txt
         [ ${{ env.WETRANS }} ] && echo -e "[WeTransfer] (${{ env.WETRANS }} 🗽)\n" >> release.txt
         [ ${{ env.COWURL }} ] && echo -e "[奶牛上传] (${{ env.COWURL }} 🐮)\n" >> release.txt
         [ ${{ env.NOTICE }} ] && echo -e "${{ env.NOTICE }}" >> release.txt || true
 
     - name: Upload packages for release
-      uses: softprops/action-gh-release@v0.1.15
+      uses: softprops/action-gh-release@master
       continue-on-error: true
       if: env.REPO_TOKEN && env.UPLOAD_FIRMWARE_FOR_RELEASE == 'true'
       env:
@@ -277,7 +296,7 @@ jobs:
             ${{ env.FIRMWARE }}/*
             openwrt/error*.log
         name: ${{ env.NAME }}
-        tag_name: ${{ env.date1 }}_${{ env.MTARGET }}
+        tag_name: ${{ env.date }}_${{matrix.target}}
         body_path: release.txt
 
     - name: Upload packages for artifact
@@ -285,37 +304,14 @@ jobs:
       continue-on-error: true
       if: env.UPLOAD_FIRMWARE_FOR_ARTIFACT == 'true'
       with:
-        name: ${{ env.date3 }} ${{ env.MTARGET }}
+        name: ${{ env.date3 }} ${{matrix.target}}
         path: ${{ env.FIRMWARE }}
-
-    #- name: deploy files to server
-    #  uses: easingthemes/ssh-deploy@main
-    #  if: env.SSH_PRIVATE_KEY && ! contains(github.event.action, 'noser')
-    #  with:
-    #    SSH_PRIVATE_KEY: ${{ env.SSH_PRIVATE_KEY }}
-    #    ARGS: "-avzr"
-    #    SOURCE: "packages/"
-    #    REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-    #    REMOTE_PORT: ${{ secrets.REMOTE_PORT }}
-    #    REMOTE_USER: root
-    #    TARGET: "/www/wwwroot/${{ secrets.REMOTE_HOST }}/packages/${{ env.MTARGET }}/"
-
-    - name: WeChat notification
-      continue-on-error: true
-      if: env.SCKEY
-      run: |
-        [ ${{ env.status }} == 'success' ] && curl https://sc.ftqq.com/${{ secrets.SCKEY }}.send?text=🎉OpenWrt_${{ env.date3 }}_${{ env.MTARGET }}软件仓库已更新😋|| curl https://sc.ftqq.com/${{ secrets.SCKEY }}.send?text=❌OpenWrt_${{ env.date3 }}_${{ env.MTARGET }}软件仓库更新失败😂
-
-    - name: Telegram notification
-      if: env.TELEGRAM_TOKEN && ! contains(github.event.action, 'notg')
-      run: |
-        # [ ${{ env.status }} == 'success' ] && curl -k --data chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" --data "text=🎉 OpenWrt ${{ env.date3 }} ${{ env.MTARGET }} 软件仓库已更新 😋  ${{ env.COWURL }}   ${{ env.WETRANS }} 🚀" "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage"
 
     - name: Delete workflow runs
       uses: Mattraks/delete-workflow-runs@main
       continue-on-error: true
       with:
-        retain_days: 1
+        retain_days: 20
         keep_minimum_runs: 1
 
     - name: Remove old Releases
@@ -323,8 +319,7 @@ jobs:
       continue-on-error: true
       if: env.UPLOAD_FIRMWARE_FOR_RELEASE == 'true' && !cancelled()
       with:
-        keep_latest: 60
+        keep_latest: 30
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
-

@@ -1,0 +1,14 @@
+--- a/include/package-defaults.mk
++++ b/include/package-defaults.mk
+@@ -23,9 +23,9 @@ define Package/Default
+   SOURCE:=$(patsubst $(TOPDIR)/%,%,$(CURDIR))
+   ifneq ($(PKG_VERSION),)
+     ifneq ($(PKG_RELEASE),)
+-      VERSION:=$(PKG_VERSION)-$(PKG_RELEASE)
++      VERSION:=$(PKG_OR)$(PKG_VERSION)-$(PKG_RELEASE)
+     else
+-      VERSION:=$(PKG_VERSION)
++      VERSION:=$(PKG_OR)$(PKG_VERSION)
+     endif
+   else
+     VERSION:=$(PKG_RELEASE)
