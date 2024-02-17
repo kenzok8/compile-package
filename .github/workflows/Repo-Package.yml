@@ -129,7 +129,7 @@ jobs:
       with:
         retain_days: 1
         keep_minimum_runs: 1
-	
+
     - name: Remove old Releases
       uses: dev-drprasad/delete-older-releases@master
       continue-on-error: true
