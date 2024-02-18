@@ -13,7 +13,7 @@ on:
   #   branches:
   #     - master
   schedule:
-    - cron: 30 5 * * *
+    - cron: 30 15 * * *
   watch:
     types: started
   workflow_dispatch:
@@ -29,8 +29,23 @@ env:
 
 jobs:
   build:
+    if: github.event.repository.owner.id == github.event.sender.id || ! github.event.sender.id
     runs-on: ubuntu-latest
     steps:
+    - name: cancel running workflows
+      uses: styfle/cancel-workflow-action@main
+      if: contains(github.event.inputs.packages, ' cw')
+      with:
+        workflow_id: all
+        access_token: ${{ github.token }}
+
+    - name: cancel running workflows
+      uses: styfle/cancel-workflow-action@main
+      if: contains(github.event.inputs.packages, ' cw')
+      with:
+        workflow_id: all
+        access_token: ${{ github.token }}
+
     - name: Trigger matrix Update
       run: |
         gitdate=$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/commits?&per_page=1" | jq -r '.[0].commit.committer.date') || true
