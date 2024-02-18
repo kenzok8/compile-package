@@ -69,14 +69,14 @@ jobs:
 
     - name: Trigger Packages Update
       run: |
-        gitdate=$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].created_at')
-        gitdate=$(date -d "$gitdate" +%s)
-        now=$(date -d "$(date)" +%s)
+        gitdate="$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].created_at')" || true
+        gitdate="$(date -d "$gitdate" +%s)" || true
+        now="$(date -d "$(date)" +%s)"
         if [[ $(expr $gitdate + 120) < $now ]]; then
         curl -X POST https://api.github.com/repos/kenzok8/small-package/dispatches \
         -H "Accept: application/vnd.github.everest-preview+json" \
         -H "Authorization: token ${{ env.REPO_TOKEN }}" \
-        --data '{"event_type": "update small"}'
+        --data '{"event_type": "update"}'
         fi
 
     - name: Initialization environment
@@ -293,7 +293,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
       with:
         files: |
-            ${{ env.FIRMWARE }}/*
+            packages/*
             openwrt/error*.log
         name: ${{ env.NAME }}
         tag_name: ${{ env.date }}_${{matrix.target}}
@@ -305,21 +305,4 @@ jobs:
       if: env.UPLOAD_FIRMWARE_FOR_ARTIFACT == 'true'
       with:
         name: ${{ env.date3 }} ${{matrix.target}}
-        path: ${{ env.FIRMWARE }}
-
-    - name: Delete workflow runs
-      uses: Mattraks/delete-workflow-runs@main
-      continue-on-error: true
-      with:
-        retain_days: 20
-        keep_minimum_runs: 1
-
-    - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@master
-      continue-on-error: true
-      if: env.UPLOAD_FIRMWARE_FOR_RELEASE == 'true' && !cancelled()
-      with:
-        keep_latest: 30
-        delete_tags: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
+        path: packages
