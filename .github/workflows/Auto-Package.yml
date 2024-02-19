@@ -67,6 +67,7 @@ jobs:
         echo "UPLOAD_FIRMWARE_FOR_RELEASE=${UPLOAD_FIRMWARE_FOR_RELEASE}" >> $GITHUB_ENV
         echo "UPLOAD_FIRMWARE_TO_COWTRANSFER=${UPLOAD_FIRMWARE_TO_COWTRANSFER}" >> $GITHUB_ENV
         echo "UPLOAD_FIRMWARE_TO_WETRANSFER=${UPLOAD_FIRMWARE_TO_WETRANSFER}" >> $GITHUB_ENV
+        sed -i "1a REPO_TOKEN=${{ env.REPO_TOKEN }}" ${GITHUB_WORKSPACE}/devices/common/custom.sh
 
     - name: Trigger Packages Update
       run: |
@@ -222,7 +223,7 @@ jobs:
             if [[ "$fpkg" && ! "$during" ]]; then
               comp
             else
-              gitdate=$(curl -H "Authorization: token ${{ secrets.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/commits?path=$ipk&per_page=1" | jq -r '.[0].commit.committer.date')
+              gitdate=$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/commits?path=$ipk&per_page=1" | jq -r '.[0].commit.committer.date')
               if [ $gitdate != null ]; then
                 gitdate=$(date -d "$gitdate" +%s)
                 now=$(date -d "$(date)" +%s)
