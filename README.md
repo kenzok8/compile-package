@@ -29,7 +29,7 @@
 
 ##### 特色:
 
- openwrt下small-package包插件x86编译..
+ openwrt下small-package包插件多架构编译..
 
  .* 编译所有软件包
 
