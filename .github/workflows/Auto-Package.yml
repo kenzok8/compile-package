@@ -254,7 +254,7 @@ jobs:
         mv -f openwrt/bin/targets/*/*/packages/base-files* packages/ || true
         # cp -Rf openwrt/bin/packages/*/packages/python3* packages/
         echo "FIRMWARE=$PWD/packages" >> $GITHUB_ENV
-        Emoji=("🎉" "🤞" "✨" "🎁" "🎈" "🎄" "🎨" "💋" "🍓" "🍕" "🍉" "💐" "🌴" "🚀" "🛸" "🗽" "⛅" "🌈" "🔥" "⛄" "🐶" "🏅" "🦄" "🐤")
+        Emoji=("⛅" "🌈" "🔥" "🍂" "🌸" "🐌" "🌿" "🐤" "💦" "💤" "💭" "🍭" "🎉" "🎁" "🎈" "🐾" "🎨" "💋" "🍓" "🍕" "🍉" "💐" "🌴" "🙈" "🤡" "🍡")
         echo "EMOJI=${Emoji[$[$RANDOM % ${#Emoji[@]}]]}" >> $GITHUB_ENV
         if [[ $(ls -l openwrt/error* | grep "^-" | wc -l) -le 0 ]]; then
            echo "NAME=${Emoji[$[$RANDOM % ${#Emoji[@]}]]} ${{ env.date2 }} ${{matrix.target}} ${{ env.EMOJI }}" >> $GITHUB_ENV
