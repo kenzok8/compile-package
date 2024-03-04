@@ -173,7 +173,7 @@ jobs:
           cat devices/${{matrix.target}}/.config >> .config
         fi
         #if [[ ${{github.actor}} == "kenzok8" ]]; then
-          #sed -i "s/index()/index()\nif luci.sys.exec(\"cat \/etc\/openwrt_release | grep -o -E ^DISTRIB_DESCRIPTION='.*(kenzo|Kenzo) == \"\" then return end/g" package/feeds/jell/luci-app*/luasrc/controller/*.lua
+          #sed -i "s/index()/index()\nif luci.sys.exec(\"cat \/etc\/openwrt_release | grep -o -E ^DISTRIB_DESCRIPTION='.*(kenzo|Kenzo) == \"\" then return end/g" package/feeds/custom/luci-app*/luasrc/controller/*.lua
         #fi
 
     - name: SSH connection to Actions
