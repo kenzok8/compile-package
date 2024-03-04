@@ -46,13 +46,6 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: cancel running workflows
-      uses: styfle/cancel-workflow-action@main
-      if: contains(github.event.action, 'cw')
-      with:
-        workflow_id: 13660847
-        access_token: ${{ github.token }}
-
     - name: Load Settings.ini
       run: |
         source "${GITHUB_WORKSPACE}/devices/common/settings.ini"
@@ -180,7 +173,7 @@ jobs:
           cat devices/${{matrix.target}}/.config >> .config
         fi
         #if [[ ${{github.actor}} == "kenzok8" ]]; then
-          #sed -i "s/index()/index()\nif luci.sys.exec(\"cat \/etc\/openwrt_release | grep -o -E ^DISTRIB_DESCRIPTION='.*(kenzo|Kenzo) == \"\" then return end/g" package/feeds/custom/luci-app*/luasrc/controller/*.lua
+          #sed -i "s/index()/index()\nif luci.sys.exec(\"cat \/etc\/openwrt_release | grep -o -E ^DISTRIB_DESCRIPTION='.*(kenzo|Kenzo) == \"\" then return end/g" package/feeds/jell/luci-app*/luasrc/controller/*.lua
         #fi
 
     - name: SSH connection to Actions
@@ -251,7 +244,6 @@ jobs:
         mkdir packages
         mv -f openwrt/bin/packages/*/custom/* packages || true
         mv -f openwrt/.config packages/${{matrix.target}}.config || true
-        mv -f openwrt/bin/targets/*/*/packages/base-files* packages/ || true
         # cp -Rf openwrt/bin/packages/*/packages/python3* packages/
         echo "FIRMWARE=$PWD/packages" >> $GITHUB_ENV
         Emoji=("⛅" "🌈" "🔥" "🍂" "🌸" "🐌" "🌿" "🐤" "💦" "💤" "💭" "🍭" "🎉" "🎁" "🎈" "🐾" "🎨" "💋" "🍓" "🍕" "🍉" "💐" "🌴" "🙈" "🤡" "🍡")
@@ -287,7 +279,7 @@ jobs:
       if: env.REPO_TOKEN && env.UPLOAD_FIRMWARE_FOR_RELEASE == 'true'
       continue-on-error: true
       run: |
-        echo -e "定时更新插件，推送发布 🎈:\n" >> release.txt
+        echo -e "定时更新插件，推送发布 💤:\n" >> release.txt
         [ ${{ env.WETRANS }} ] && echo -e "[WeTransfer] (${{ env.WETRANS }} 🗽)\n" >> release.txt
         [ ${{ env.COWURL }} ] && echo -e "[奶牛上传] (${{ env.COWURL }} 🐮)\n" >> release.txt
         [ ${{ env.NOTICE }} ] && echo -e "${{ env.NOTICE }}" >> release.txt || true
