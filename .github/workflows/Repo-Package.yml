@@ -6,7 +6,7 @@
 # Blog: https://p3terx.com
 #=================================================
 
-name: Repo Dispatcher
+name: Repo-Package
 
 on: 
   # push: 
@@ -38,7 +38,7 @@ jobs:
       with:
         workflow_id: all
         access_token: ${{ github.token }}
-    
+
     - name: Trigger matrix Update
       run: |
         gitdate=$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/commits?&per_page=1" | jq -r '.[0].commit.committer.date') || true

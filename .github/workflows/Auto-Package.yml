@@ -6,7 +6,7 @@
 # Blog: https://p3terx.com
 #=================================================
 
-name: Packages-AutoBuild
+name: Auto-Packages
 
 on: 
   repository_dispatch:
@@ -172,7 +172,7 @@ jobs:
           echo >> .config
           cat devices/${{matrix.target}}/.config >> .config
         fi
-        #if [[ ${{github.actor}} == "jell" ]]; then
+        #if [[ ${{github.actor}} == "kenzok8" ]]; then
           #sed -i "s/index()/index()\nif luci.sys.exec(\"cat \/etc\/openwrt_release | grep -o -E ^DISTRIB_DESCRIPTION='.*(kenzo|kenzok8)'\") == \"\" then return end/g" package/feeds/jell/luci-app*/luasrc/controller/*.lua
         #fi
 
