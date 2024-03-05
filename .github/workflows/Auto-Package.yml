@@ -17,6 +17,8 @@ on:
   #   - cron: 0 1 */1 * *
 
 env:
+  PPPOE_USERNAME: ${{ secrets.PPPOE_USERNAME }}
+  PPPOE_PASSWD: ${{ secrets.PPPOE_PASSWD }}
   SCKEY: ${{ secrets.SCKEY }}
   REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
   REMOTE_PORT: ${{ secrets.REMOTE_PORT }}
@@ -58,9 +60,9 @@ jobs:
         echo "UPLOAD_FIRMWARE_TO_COWTRANSFER=${UPLOAD_FIRMWARE_TO_COWTRANSFER}" >> $GITHUB_ENV
         echo "UPLOAD_FIRMWARE_TO_WETRANSFER=${UPLOAD_FIRMWARE_TO_WETRANSFER}" >> $GITHUB_ENV
         if [[ "${{matrix.target}}" == arm_* ]]; then
-          echo "REPO_TOKEN=${{ secrets.TOKEN_KENZO7 }}" >> $GITHUB_ENV
+        echo "REPO_TOKEN=${{ secrets.TOKEN_KENZO7 }}" >> $GITHUB_ENV
         else
-          echo "REPO_TOKEN=${{ secrets.TOKEN_KENZO8 }}" >> $GITHUB_ENV
+        echo "REPO_TOKEN=${{ secrets.TOKEN_KENZO8 }}" >> $GITHUB_ENV
         fi
         sed -i "1a REPO_TOKEN=${{ env.REPO_TOKEN }}" ${GITHUB_WORKSPACE}/devices/common/custom.sh
 
@@ -254,7 +256,7 @@ jobs:
         mv -f openwrt/.config packages/${{matrix.target}}.config || true
         # cp -Rf openwrt/bin/packages/*/packages/python3* packages/
         echo "FIRMWARE=$PWD/packages" >> $GITHUB_ENV
-        Emoji=("⛅" "🌈" "🔥" "🍂" "🌸" "🐌" "🌿" "🐤" "💦" "💤" "💭" "🍭" "🎉" "🎁" "🎈" "🐾" "🎨" "💋" "🍓" "🍕" "🍉" "💐" "🌴" "🙈" "🤡" "🍡")
+        Emoji=("🍂" "🌸" "🐌" "🌿" "🐤" "💦" "💤" "⛅" "🌈" "🔥" "💭" "🍭" "🎉" "🎁" "🎈" "🐾" "🎨" "💋" "🍓" "🍕" "🍉" "💐" "🌴" "🙈" "🤡" "🍡")
         echo "EMOJI=${Emoji[$[$RANDOM % ${#Emoji[@]}]]}" >> $GITHUB_ENV
         if [[ $(ls -l openwrt/error* | grep "^-" | wc -l) -le 0 ]]; then
            echo "NAME=${Emoji[$[$RANDOM % ${#Emoji[@]}]]} ${{ env.date2 }} ${{matrix.target}} ${{ env.EMOJI }}" >> $GITHUB_ENV
