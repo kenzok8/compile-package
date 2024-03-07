@@ -30,6 +30,8 @@ status=$(curl -H "Authorization: token $REPO_TOKEN" -s "https://api.github.com/r
 done
 
 ./scripts/feeds update -a
+rm -rf feeds/packages/lang/golang
+git clone https://github.com/kenzok8/golang feeds/packages/lang/golang
 ./scripts/feeds install -a -p jell -f
 ./scripts/feeds install -a
 
