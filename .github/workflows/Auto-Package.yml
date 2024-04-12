@@ -290,6 +290,7 @@ jobs:
       continue-on-error: true
       run: |
         echo -e "定时更新插件，推送发布 💤:\n" >> release.txt
+        echo -e "[下载链接] (https://${{ secrets.REMOTE_HOST }}/packages/${{matrix.target}}/)\n" >> release.txt
         [ ${{ env.WETRANS }} ] && echo -e "[WeTransfer] (${{ env.WETRANS }} 🗽)\n" >> release.txt
         [ ${{ env.COWURL }} ] && echo -e "[奶牛上传] (${{ env.COWURL }} 🐮)\n" >> release.txt
         [ ${{ env.NOTICE }} ] && echo -e "${{ env.NOTICE }}" >> release.txt || true
@@ -316,3 +317,28 @@ jobs:
       with:
         name: ${{ env.date3 }} ${{matrix.target}}
         path: packages
+
+    - name: deploy files to server
+      uses: easingthemes/ssh-deploy@main
+      if: env.SSH_PRIVATE_KEY && ! contains(github.event.action, 'noser')
+      with:
+        SSH_PRIVATE_KEY: ${{ env.SSH_PRIVATE_KEY }}
+        ARGS: "-avzr"
+        SOURCE: "packages/"
+        REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+        REMOTE_PORT: ${{ secrets.REMOTE_PORT }}
+        REMOTE_USER: root
+        TARGET: "/www/wwwroot/${{ secrets.REMOTE_HOST }}/packages/${{matrix.target}}/"
+
+    - name: remote ssh command
+      uses: appleboy/ssh-action@master
+      if: env.SSH_PRIVATE_KEY && ! contains(github.event.action, 'noser')
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        port: ${{ secrets.REMOTE_PORT }}
+        username: root
+        key: ${{ env.SSH_PRIVATE_KEY }}
+        script: |
+          # cp -R /www/wwwroot/${{ secrets.REMOTE_HOST }}/packages/keep/common/* /www/wwwroot/${{ secrets.REMOTE_HOST }}/packages/${{matrix.target}}/
+          # cp -R /www/wwwroot/${{ secrets.REMOTE_HOST }}/packages/keep/${{matrix.target}}/* /www/wwwroot/${{ secrets.REMOTE_HOST }}/packages/${{matrix.target}}/
+          bash opkg ${{matrix.target}} &
