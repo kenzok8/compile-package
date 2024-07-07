@@ -191,6 +191,8 @@ jobs:
         done
         cd openwrt
         make defconfig
+        rm -rf feeds/packages/lang/golang
+        git clone https://github.com/kenzok8/golang feeds/packages/lang/golang
         mv -f package/feeds/jell jell.b
         mv -f feeds/packages/lang feeds/packages/lang.b
         mv -f feeds/packages feeds/packages.b
