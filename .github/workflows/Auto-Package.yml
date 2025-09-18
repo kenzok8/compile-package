@@ -134,22 +134,27 @@ jobs:
         fi
 
     - name: Free up disk space
-      if: env.FREE_UP_DISK == 'true'
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo mkdir -p -m 777 openwrt /mnt/openwrt/dl /mnt/openwrt/build_dir/hostpkg openwrt/build_dir /mnt/openwrt/bin
-        ln -sf /mnt/openwrt/dl openwrt/dl
-        ln -sf /mnt/openwrt/build_dir/hostpkg openwrt/build_dir/hostpkg
-        ln -sf /mnt/openwrt/bin openwrt/bin
+        sudo mkdir -p -m 777 openwrt /mnt/openwrt/staging_dir /mnt/openwrt/build_dir /mnt/openwrt/bin  /mnt/openwrt/dl
+        if [[ "$(echo "${{github.event.action}}" | grep "a-")" ]]; then
+          ln -sf /mnt/openwrt/staging_dir openwrt/staging_dir
+          ln -sf /mnt/openwrt/bin openwrt/bin
+          ln -sf /mnt/openwrt/dl openwrt/dl
+          ln -sf /mnt/openwrt/build_dir openwrt/build_dir
+        fi
+        df -hT
     
     - name: Load custom configuration
       run: |
         mkdir openwrt
-        tar -I zstd -xf sdk.tar.zst -C openwrt
+        tar -xJf sdk.tar.zst -C openwrt || tar -xf sdk.tar.zst -C openwrt
         rm -Rf sdk.tar.zst
         cd openwrt
-        cp -rf ./openwrt-sdk*/. ./ || true
+        cp -rf ./openwrt-sdk*/. ./ 2>/dev/null || true
+        cp -rf ./openwrt-sdk*/build_dir/. ./build_dir/ || true
+        cp -rf ./openwrt-sdk*/staging_dir/. ./staging_dir/ || true
         cp -rf ../devices ./
         cp -rf devices/common/. ./
         cp -rf devices/${{matrix.target}}/. ./
@@ -195,9 +200,12 @@ jobs:
           echo >> .config
           cat devices/${{matrix.target}}/.config >> .config
         fi
-        #if [[ ${{github.actor}} == "kenzok8" ]]; then
-          #sed -i "s/index()/index()\nif luci.sys.exec(\"cat \/etc\/openwrt_release | grep -o -E ^DISTRIB_DESCRIPTION='.*(kenzo|kenzok8)'\") == \"\" then return end/g" package/feeds/jell/luci-app*/luasrc/controller/*.lua
-        #fi
+        status=$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].status')
+        while [ "$status" == "in_progress" ];do
+          sleep 5
+          status=$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].status')
+        done
+        make defconfig
 
     - name: SSH connection to Actions
       uses: kenzok78/debugger-action@master
@@ -205,37 +213,12 @@ jobs:
 
     - name: Prepare
       run: |
-        status=$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].status')
-        while [ "$status" == "in_progress" ];do
-          sleep 5
-          status=$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].status')
-        done
         cd openwrt
-        
-        # Try to run make defconfig, if it fails, try to fix common issues
-        if ! make defconfig; then
-          echo "Initial defconfig failed, attempting to fix..."
-          
-          # Remove potentially problematic files and retry
-          rm -f .config.old
-          rm -f include/package-defaults.mk.rej
-          
-          # Try to restore original package-defaults.mk if backup exists
-          if [ -f include/package-defaults.mk.orig ]; then
-            cp include/package-defaults.mk.orig include/package-defaults.mk
-          fi
-          
-          # Retry defconfig
-          make defconfig || echo "Warning: defconfig still failing, continuing anyway..."
-        fi
-        
-        rm -rf feeds/packages/lang/golang
-        git clone https://github.com/kenzok8/golang feeds/packages/lang/golang
         mv -f package/feeds/jell jell.b
         mv -f feeds/packages/lang feeds/packages/lang.b
         mv -f feeds/packages feeds/packages.b
         mkdir package/feeds/jell
-        cp -rf jell.b/{wxbase,lib*,rapidjson,jpcre2,toml11,gn,curl,quickjspp,qt*,libtorrent*,openssl,mbedtls,ppp,cups,nftables} package/feeds/jell/ || true
+        cp -rf jell.b/{wxbase,lib*,rapidjson,nftables,jpcre2,toml11,gn,curl,quickjspp,qt*,libdouble*,libtorrent*,openssl,mbedtls,ppp,cups,nftables} package/feeds/jell/ || true
 
     - name: Compile the firmware
       run: |
