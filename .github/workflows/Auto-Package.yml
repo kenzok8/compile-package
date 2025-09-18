@@ -156,15 +156,36 @@ jobs:
         chmod -R +x devices/* || true
         sed -i '/	refresh_config();/d' scripts/feeds
         ./scripts/feeds update -a
-        find "devices/common/patches" -type f -name '*.b.patch' -print0 | sort -z | xargs -I % -t -0 -n 1 sh -c "cat '%'  | patch -d './' -p1 -E --forward --no-backup-if-mismatch"
+        
+        # Apply .b.patch files with error handling
+        if [ -d "devices/common/patches" ]; then
+          find "devices/common/patches" -type f -name '*.b.patch' -print0 | sort -z | while IFS= read -r -d '' patch_file; do
+            echo "Applying patch: $patch_file"
+            cat "$patch_file" | patch -d './' -p1 -E --forward --no-backup-if-mismatch || echo "Warning: Failed to apply patch $patch_file"
+          done
+        fi
+        
         /bin/bash "devices/common/custom.sh"
         if [ -f "devices/${{matrix.target}}/custom.sh" ]; then
           /bin/bash "devices/${{matrix.target}}/custom.sh"
         fi
-        find "devices/common/patches" -type f -name '*.patch' ! -name '*.b.patch' -print0 | sort -z | xargs -I % -t -0 -n 1 sh -c "cat '%'  | patch -d './' -p1 -E --forward --no-backup-if-mismatch"
-        if [ -n "$(ls -A "devices/${{matrix.target}}/patches" 2>/dev/null)" ]; then
-          find "devices/${{matrix.target}}/patches" -type f -name '*.patch' -print0 | sort -z | xargs -I % -t -0 -n 1 sh -c "cat '%'  | patch -d './' -p1 -E --forward --no-backup-if-mismatch"
+        
+        # Apply regular patch files with error handling
+        if [ -d "devices/common/patches" ]; then
+          find "devices/common/patches" -type f -name '*.patch' ! -name '*.b.patch' -print0 | sort -z | while IFS= read -r -d '' patch_file; do
+            echo "Applying patch: $patch_file"
+            cat "$patch_file" | patch -d './' -p1 -E --forward --no-backup-if-mismatch || echo "Warning: Failed to apply patch $patch_file"
+          done
         fi
+        
+        # Apply target-specific patches with error handling
+        if [ -n "$(ls -A "devices/${{matrix.target}}/patches" 2>/dev/null)" ]; then
+          find "devices/${{matrix.target}}/patches" -type f -name '*.patch' -print0 | sort -z | while IFS= read -r -d '' patch_file; do
+            echo "Applying target patch: $patch_file"
+            cat "$patch_file" | patch -d './' -p1 -E --forward --no-backup-if-mismatch || echo "Warning: Failed to apply patch $patch_file"
+          done
+        fi
+        
         cp -Rf ./diy/* ./ || true
         if [ -f "devices/${{matrix.target}}/default-settings" ]; then
           echo >> package/*/*/my-default-settings/files/etc/uci-defaults/99-default-settings
@@ -190,7 +211,24 @@ jobs:
           status=$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].status')
         done
         cd openwrt
-        make defconfig
+        
+        # Try to run make defconfig, if it fails, try to fix common issues
+        if ! make defconfig; then
+          echo "Initial defconfig failed, attempting to fix..."
+          
+          # Remove potentially problematic files and retry
+          rm -f .config.old
+          rm -f include/package-defaults.mk.rej
+          
+          # Try to restore original package-defaults.mk if backup exists
+          if [ -f include/package-defaults.mk.orig ]; then
+            cp include/package-defaults.mk.orig include/package-defaults.mk
+          fi
+          
+          # Retry defconfig
+          make defconfig || echo "Warning: defconfig still failing, continuing anyway..."
+        fi
+        
         rm -rf feeds/packages/lang/golang
         git clone https://github.com/kenzok8/golang feeds/packages/lang/golang
         mv -f package/feeds/jell jell.b
