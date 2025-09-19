@@ -1,7 +1,12 @@
 #!/bin/bash
 
 shopt -s extglob
-rm -rf feeds/jell/{diy,mt-drivers,shortcut-fe,luci-app-mtwifi,base-files,firewall,dnsmasq}
+rm -rf feeds/jell/{diy,mt-drivers,shortcut-fe,luci-app-mtwifi,base-files,luci-app-package-manager,\
+dnsmasq,firewall*,wifi-scripts,opkg,ppp,curl,luci-app-firewall,\
+nftables,fstools,wireless-regdb,libnftnl,netdata}
+rm -rf feeds/packages/libs/libcups
+
+curl -sfL https://raw.githubusercontent.com/openwrt/packages/master/lang/golang/golang/Makefile -o feeds/packages/lang/golang/golang/Makefile
 
 for ipk in $(find feeds/jell/* -maxdepth 0 -type d);
 do
@@ -12,8 +17,8 @@ done
 rm -Rf feeds/luci/{applications,collections,protocols,themes,libs,docs,contrib}
 rm -Rf feeds/luci/modules/!(luci-base)
 rm -Rf feeds/packages/!(lang|libs|devel|utils|net|multimedia)
-rm -Rf feeds/packages/multimedia/!(gstreamer1|ffmpeg)
-rm -Rf feeds/packages/libs/libcups
+rm -Rf feeds/packages/libs/gnutls
+rm -Rf feeds/packages/multimedia/!(gstreamer1)
 rm -Rf feeds/packages/net/!(mosquitto|curl)
 rm -Rf feeds/base/package/firmware
 rm -Rf feeds/base/package/network/!(services|utils)
@@ -30,14 +35,13 @@ status=$(curl -H "Authorization: token $REPO_TOKEN" -s "https://api.github.com/r
 done
 
 ./scripts/feeds update -a
-rm -rf feeds/packages/lang/golang
-git clone https://github.com/kenzok8/golang feeds/packages/lang/golang
 ./scripts/feeds install -a -p jell -f
 ./scripts/feeds install -a
 
+rm -rf package/feeds/jell/luci-app-quickstart/root/usr/share/luci/menu.d/luci-app-quickstart.json
+
 sed -i 's/\(page\|e\)\?.acl_depends.*\?}//' `find package/feeds/jell/luci-*/luasrc/controller/* -name "*.lua"`
 # sed -i 's/\/cgi-bin\/\(luci\|cgi-\)/\/\1/g' `find package/feeds/jell/luci-*/ -name "*.lua" -or -name "*.htm*" -or -name "*.js"` &
-sed -i 's/Os/O2/g' include/target.mk
 
 sed -i \
 	-e "s/+\(luci\|luci-ssl\|uhttpd\)\( \|$\)/\2/" \
@@ -47,17 +51,9 @@ sed -i \
 	-e 's,$(STAGING_DIR_HOST)/bin/upx,upx,' \
 	package/feeds/jell/*/Makefile
 
-cp -f devices/common/.config .config
-mv feeds/base feeds/base.bak
-mv feeds/packages feeds/packages.bak
-make defconfig
-rm -Rf tmp
-mv feeds/base.bak feeds/base
-mv feeds/packages.bak feeds/packages
-sed -i 's/CONFIG_ALL=y/CONFIG_ALL=n/' .config
-sed -i '/PACKAGE_kmod-/d' .config
+sed -i 's/--set=llvm\.download-ci-llvm=true/--set=llvm.download-ci-llvm=false/' feeds/packages/lang/rust/Makefile
 
-sed -i "/mediaurlbase/d" package/feeds/*/luci-theme*/root/etc/uci-defaults/*
+cp -f devices/common/.config .config
 
 sed -i '/WARNING: Makefile/d' scripts/package-metadata.pl
 

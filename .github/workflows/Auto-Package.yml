@@ -77,18 +77,6 @@ jobs:
         docker-images: true
         swap-storage: true
 
-    - name: Trigger Packages Update
-      run: |
-        gitdate="$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].created_at')" || true
-        gitdate="$(date -d "$gitdate" +%s)" || true
-        now="$(date -d "$(date)" +%s)"
-        if [[ $(expr $gitdate + 120) < $now ]]; then
-        curl -X POST https://api.github.com/repos/kenzok8/small-package/dispatches \
-        -H "Accept: application/vnd.github.everest-preview+json" \
-        -H "Authorization: token ${{ env.REPO_TOKEN }}" \
-        --data '{"event_type": "update"}'
-        fi
-
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
