@@ -186,6 +186,8 @@ jobs:
         chmod -R +x devices/* || true
         sed -i '/	refresh_config();/d' scripts/feeds
         ./scripts/feeds update -a
+        rm -rf feeds/packages/lang/golang
+        git clone https://github.com/kenzok8/golang -b 1.26 feeds/packages/lang/golang
         find "devices/common/patches" -type f -name '*.b.patch' -print0 | sort -z | xargs -I % -t -0 -n 1 sh -c "cat '%'  | patch -d './' -p1 -E --forward --no-backup-if-mismatch"
         /bin/bash "devices/common/custom.sh"
         if [ -f "devices/${{matrix.target}}/custom.sh" ]; then
