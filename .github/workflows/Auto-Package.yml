@@ -1,4 +1,5 @@
-# ================================================
+
+#=================================================
 # https://github.com/P3TERX/Actions-OpenWrt
 # Description: Build OpenWrt using GitHub Actions
 # Lisence: MIT
@@ -8,11 +9,15 @@
 
 name: Auto-Packages
 
-on:
+on: 
   repository_dispatch:
-    types: [push]
+   push: 
+     branches:
+       - master
+   schedule:
+     - cron: 0 1 */1 * *
 
-Env:
+env:
   PPPOE_USERNAME: ${{ secrets.PPPOE_USERNAME }}
   PPPOE_PASSWD: ${{ secrets.PPPOE_PASSWD }}
   SCKEY: ${{ secrets.SCKEY }}
@@ -36,3 +41,307 @@ jobs:
         target: ["${{ github.event.client_payload.target }}"]
         
     steps:
+    - name: Checkout
+      uses: actions/checkout@main
+      with:
+        fetch-depth: 0
+
+    - name: Load Settings.ini
+      run: |
+        source "${GITHUB_WORKSPACE}/devices/common/settings.ini"
+        echo "REPO_URL=${REPO_URL}" >> $GITHUB_ENV
+        echo "REPO_BRANCH=${REPO_BRANCH}" >> $GITHUB_ENV
+        echo "CONFIG_FILE=${CONFIG_FILE}" >> $GITHUB_ENV
+        echo "DIY_SH=${DIY_SH}" >> $GITHUB_ENV
+        echo "FREE_UP_DISK=${FREE_UP_DISK}" >> $GITHUB_ENV
+        echo "SSH_ACTIONS=${SSH_ACTIONS}" >> $GITHUB_ENV
+        echo "UPLOAD_BIN_DIR_FOR_ARTIFACT=${UPLOAD_BIN_DIR_FOR_ARTIFACT}" >> $GITHUB_ENV
+        echo "UPLOAD_FIRMWARE_FOR_ARTIFACT=${UPLOAD_FIRMWARE_FOR_ARTIFACT}" >> $GITHUB_ENV
+        echo "UPLOAD_FIRMWARE_FOR_RELEASE=${UPLOAD_FIRMWARE_FOR_RELEASE}" >> $GITHUB_ENV
+        echo "UPLOAD_FIRMWARE_TO_COWTRANSFER=${UPLOAD_FIRMWARE_TO_COWTRANSFER}" >> $GITHUB_ENV
+        echo "UPLOAD_FIRMWARE_TO_WETRANSFER=${UPLOAD_FIRMWARE_TO_WETRANSFER}" >> $GITHUB_ENV
+        if [[ "${{matrix.target}}" == arm_* ]]; then
+        echo "REPO_TOKEN=${{ secrets.TOKEN_KENZO7 }}" >> $GITHUB_ENV
+        else
+        echo "REPO_TOKEN=${{ secrets.TOKEN_KENZO8 }}" >> $GITHUB_ENV
+        fi
+        sed -i "1a REPO_TOKEN=${{ env.REPO_TOKEN }}" ${GITHUB_WORKSPACE}/devices/common/custom.sh
+
+    - name: Free disk space
+      uses: coder-xiaomo/free-disk-space@main
+      with:
+        tool-cache: false
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: true
+        docker-images: true
+        swap-storage: true
+
+    - name: Initialization environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install build-essential libncurses-dev zlib1g-dev gawk git \
+        gettext libssl-dev xsltproc rsync wget unzip \
+        llvm python3-pyelftools libpython3-dev aria2 jq qemu-utils rename \
+        libelf-dev libgmp3-dev libmpc-dev libfuse-dev bc autopoint cups-ppdc
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
+        sudo timedatectl set-timezone "Asia/Shanghai"
+
+    - name: Get current date
+      id: date
+      run: |
+        echo "date=$(date +'%Y.%m.%d-%H/%M')" >> $GITHUB_ENV
+        echo "date2=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
+        echo "date3=$(date +'%m.%d')" >> $GITHUB_ENV
+
+    - name: Clone source code
+      run: |
+        set -v
+        REPO_BRANCH="24.10-SNAPSHOT"
+        echo "$REPO_BRANCH"
+        if [ ${{matrix.target}} == "mipsel_24kc" ]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ramips/mt7621/openwrt-sdk-$REPO_BRANCH-ramips-mt7621_gcc-13.3.0_musl.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/ramips/mt7621/openwrt-sdk-$REPO_BRANCH-ramips-mt7621_gcc-13.3.0_musl.Linux-x86_64.tar.zst 
+        elif [ ${{matrix.target}} == "mips_24kc" ]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ath79/nand/openwrt-sdk-$REPO_BRANCH-ath79-nand_gcc-13.3.0_musl.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/ath79/nand/openwrt-sdk-$REPO_BRANCH-ath79-nand_gcc-13.3.0_musl.Linux-x86_64.tar.zst 
+        elif [[ ${{matrix.target}} == "x86_64" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/x86/64/openwrt-sdk-$REPO_BRANCH-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/x86/64/openwrt-sdk-$REPO_BRANCH-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+        elif [[ ${{matrix.target}} == "i386_pentium4" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/x86/generic/openwrt-sdk-$REPO_BRANCH-x86-generic_gcc-13.3.0_musl.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/x86/generic/openwrt-sdk-$REPO_BRANCH-x86-generic_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+        elif [[ ${{matrix.target}} == "aarch64_generic" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/rockchip/armv8/openwrt-sdk-$REPO_BRANCH-rockchip-armv8_gcc-13.3.0_musl.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/rockchip/armv8/openwrt-sdk-$REPO_BRANCH-rockchip-armv8_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+        elif [[ ${{matrix.target}} == "arm_arm1176jzf-s_vfp" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/bcm27xx/bcm2708/openwrt-sdk-$REPO_BRANCH-bcm27xx-bcm2708_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/bcm27xx/bcm2708/openwrt-sdk-$REPO_BRANCH-bcm27xx-bcm2708_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
+        elif [[ ${{matrix.target}} == "arm_cortex-a15_neon-vfpv4" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ipq806x/generic/openwrt-sdk-$REPO_BRANCH-ipq806x-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/ipq806x/generic/openwrt-sdk-$REPO_BRANCH-ipq806x-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
+        elif [[ ${{matrix.target}} == "arm_cortex-a5_vfpv4" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/at91/sama5/openwrt-sdk-$REPO_BRANCH-at91-sama5_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/at91/sama5/openwrt-sdk-$REPO_BRANCH-at91-sama5_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
+        elif [[ ${{matrix.target}} == "aarch64_cortex-a72" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/bcm27xx/bcm2711/openwrt-sdk-$REPO_BRANCH-bcm27xx-bcm2711_gcc-13.3.0_musl.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/bcm27xx/bcm2711/openwrt-sdk-$REPO_BRANCH-bcm27xx-bcm2711_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+        elif [[ ${{matrix.target}} == "aarch64_cortex-a53" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/mediatek/mt7622/openwrt-sdk-$REPO_BRANCH-mediatek-mt7622_gcc-13.3.0_musl.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/mediatek/mt7622/openwrt-sdk-$REPO_BRANCH-mediatek-mt7622_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+        elif [[ ${{matrix.target}} == "arm_cortex-a7_neon-vfpv4" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ipq40xx/generic/openwrt-sdk-$REPO_BRANCH-ipq40xx-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ipq40xx/mikrotik/openwrt-sdk-$REPO_BRANCH-ipq40xx-mikrotik_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
+        elif [[ ${{matrix.target}} == "arm_cortex-a7" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/mediatek/mt7629/openwrt-sdk-$REPO_BRANCH-mediatek-mt7629_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/mediatek/mt7629/openwrt-sdk-$REPO_BRANCH-mediatek-mt7629_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
+        elif [[ ${{matrix.target}} == "arm_cortex-a9" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/bcm53xx/generic/openwrt-sdk-$REPO_BRANCH-bcm53xx-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/bcm53xx/generic/openwrt-sdk-$REPO_BRANCH-bcm53xx-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
+        elif [[ ${{matrix.target}} == "arm_cortex-a9_vfpv3-d16" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/mvebu/cortexa9/openwrt-sdk-$REPO_BRANCH-mvebu-cortexa9_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst || curl -fL -o sdk.tar.zst https://downloads.cdn.openwrt.org/releases/$REPO_BRANCH/targets/mvebu/cortexa9/openwrt-sdk-$REPO_BRANCH-mvebu-cortexa9_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
+        elif [[ ${{matrix.target}} == "aarch64_cortex-a76" ]]; then
+            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/bcm27xx/bcm2712/openwrt-sdk-$REPO_BRANCH-bcm27xx-bcm2712_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+        fi
+
+    - name: Free up disk space
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo mkdir -p -m 777 openwrt /mnt/openwrt/staging_dir /mnt/openwrt/build_dir /mnt/openwrt/bin  /mnt/openwrt/dl
+        if [[ "$(echo "${{github.event.action}}" | grep "a-")" ]]; then
+          ln -sf /mnt/openwrt/staging_dir openwrt/staging_dir
+          ln -sf /mnt/openwrt/bin openwrt/bin
+          ln -sf /mnt/openwrt/dl openwrt/dl
+          ln -sf /mnt/openwrt/build_dir openwrt/build_dir
+        fi
+        df -hT
+    
+    - name: Load custom configuration
+      run: |
+        function git_clone_path() {
+          trap 'rm -rf "$tmpdir"' EXIT
+          branch="$1" rurl="$2" mv="$3"
+          [[ "$mv" != "mv" ]] && shift 2 || shift 3
+          rootdir="$PWD"
+          tmpdir="$(mktemp -d)" || exit 1
+          if [ ${#branch} -lt 10 ]; then
+          git clone -b "$branch" --depth 1 --filter=blob:none --sparse "$rurl" "$tmpdir"
+          cd "$tmpdir"
+          else
+          git clone --filter=blob:none --sparse "$rurl" "$tmpdir"
+          cd "$tmpdir"
+          git checkout $branch
+          fi
+          if [ "$?" != 0 ]; then
+            echo "error on $rurl"
+            exit 1
+          fi
+          git sparse-checkout init --cone
+          git sparse-checkout set $@
+          [[ "$mv" != "mv" ]] && cp -rn ./* $rootdir/ || mv -n $@/* $rootdir/$@/
+          cd $rootdir
+        }
+        export -f git_clone_path
+        tar --use-compress-program=unzstd -xf sdk.tar.zst -C openwrt || tar -I zstd -xf sdk.tar.zst -C openwrt
+        rm -Rf sdk.tar.zst
+        cd openwrt
+        cp -rf ./openwrt-sdk*/. ./ 2>/dev/null || true
+        cp -rf ./openwrt-sdk*/build_dir/. ./build_dir/ || true
+        cp -rf ./openwrt-sdk*/staging_dir/. ./staging_dir/ || true
+        cp -rf ../devices ./
+        cp -rf devices/common/. ./
+        cp -rf devices/${{matrix.target}}/. ./
+        chmod -R +x devices/* || true
+        sed -i '/	refresh_config();/d' scripts/feeds
+        ./scripts/feeds update -a
+        rm -rf feeds/packages/lang/golang
+        git clone https://github.com/kenzok8/golang -b 1.26 feeds/packages/lang/golang
+        find "devices/common/patches" -type f -name '*.b.patch' -print0 | sort -z | xargs -I % -t -0 -n 1 sh -c "cat '%'  | patch -d './' -p1 -E --forward --no-backup-if-mismatch"
+        /bin/bash "devices/common/custom.sh"
+        if [ -f "devices/${{matrix.target}}/custom.sh" ]; then
+          /bin/bash "devices/${{matrix.target}}/custom.sh"
+        fi
+        find "devices/common/patches" -type f -name '*.patch' ! -name '*.b.patch' -print0 | sort -z | xargs -I % -t -0 -n 1 sh -c "cat '%'  | patch -d './' -p1 -E --forward --no-backup-if-mismatch"
+        if [ -n "$(ls -A "devices/${{matrix.target}}/patches" 2>/dev/null)" ]; then
+          find "devices/${{matrix.target}}/patches" -type f -name '*.patch' -print0 | sort -z | xargs -I % -t -0 -n 1 sh -c "cat '%'  | patch -d './' -p1 -E --forward --no-backup-if-mismatch"
+        fi
+        cp -Rf ./diy/* ./ || true
+        if [ -f "devices/${{matrix.target}}/default-settings" ]; then
+          echo >> package/*/*/my-default-settings/files/etc/uci-defaults/99-default-settings
+          cat devices/${{matrix.target}}/default-settings >> package/*/*/my-default-settings/files/etc/uci-defaults/99-default-settings
+        fi
+        if [ -f "devices/${{matrix.target}}/.config" ]; then
+          echo >> .config
+          cat devices/${{matrix.target}}/.config >> .config
+        fi
+        status=$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].status')
+        while [ "$status" == "in_progress" ];do
+          sleep 5
+          status=$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/actions/runs" | jq -r '.workflow_runs[0].status')
+        done
+        make defconfig
+
+    - name: SSH connection to Actions
+      uses: kenzok78/debugger-action@master
+      if: contains(github.event.action, 'ssh')
+
+    - name: Prepare
+      run: |
+        cd openwrt
+        mv -f package/feeds/jell jell.b
+        mv -f feeds/packages/lang feeds/packages/lang.b
+        mv -f feeds/packages feeds/packages.b
+        mkdir package/feeds/jell
+        cp -rf jell.b/{wxbase,lib*,rapidjson,nftables,jpcre2,toml11,gn,curl,quickjspp,qt*,libdouble*,libtorrent*,openssl,mbedtls,ppp,cups,nftables} package/feeds/jell/ || true
+
+    - name: Compile the firmware
+      run: |
+        cd openwrt
+          echo -e "$(($(nproc)+1)) thread compile"
+          fpkg="$(echo "${{github.event.action}}" | sed -e 's/\(aarch64_generic\|x86_64\|i386_pentium4\|arm_arm1176jzf-s_vfp\|aarch64_cortex-a72\|arm_cortex-a7\|arm_cortex-a7_neon-vfpv4\|arm_cortex-a9\|arm_cortex-a15_neon-vfpv4\|arm_cortex-a5_vfpv4\|mipsel_24kc\|mips_24kc\|aarch64_cortex-a53\|arm_xscale\|arm_cortex-a9_vfpv3-d16\| [0-9][0-9.]*\| ssh\| noser\| cw\)//g' | sed -e 's/ //g')"
+          during="$(echo "${{github.event.action}}" | grep -o -E ' [0-9][0-9.]*' | sed -e 's/ //')"
+          function comp(){
+             echo "compile $ipk"
+             cp -rf jell.b/$ipk package/feeds/jell/
+             if [[ $ipk != luci-* ]]; then
+              mv -f feeds/packages.b feeds/packages
+              mv feeds/packages/lang.b feeds/packages/lang
+              [ "$(grep "PKG_BUILD_DEPENDS" package/feeds/jell/$ipk/Makefile)" ] || mv feeds/packages/lang/node feeds/packages/lang/node.b
+             fi
+             (make package/$ipk/compile -j$(($(nproc)+1)) || make package/$ipk/compile V=s 2>&1 | tee error_$ipk.log | grep -i "Error 2" || rm -rf error_$ipk.log) || true
+             if [[ $ipk != luci-* ]]; then
+              mv -f feeds/packages/lang feeds/packages/lang.b 2>/dev/null || true
+              mv -f feeds/packages/lang.b/node.b feeds/packages/lang.b/node 2>/dev/null || true
+              mv -f feeds/packages feeds/packages.b
+              rm -rf package/feeds/jell/$ipk
+             fi
+            }
+          for ipk in $(ls jell.b | grep -E "$fpkg"); do
+            echo $ipk
+            if [[ "$fpkg" && ! "$during" ]]; then
+              comp
+            else
+              gitdate="$(curl -H "Authorization: token ${{ env.REPO_TOKEN }}" -s "https://api.github.com/repos/kenzok8/small-package/commits?path=$ipk&per_page=1" | jq -r '.[0].commit.committer.date')" || true
+              if [[ "$gitdate" && "$gitdate" != null ]]; then
+                gitdate="$(date -d "$gitdate" +%s)"
+                now="$(date -d "$(date)" +%s)"
+                [ "$during" ] || during="1.05"
+                durings=`echo "$during*60*60*24" | bc`
+                if [[ $(($gitdate + ${durings%.*})) -gt $now && $ipk != luci-base && $ipk != luci-mod-* ]]; then
+                  echo "$((($now - $gitdate)/60/60))" || true
+                  echo "$ipk" >> ipk.txt
+                fi
+              fi
+            fi
+          done
+          if [ -f ipk.txt ]; then
+              for ipk in $(cat ipk.txt)
+              do
+                comp
+              done
+          fi
+        echo "status=success" >> $GITHUB_ENV
+
+    - name: Check space usage
+      run: df -hT
+
+    - name: Organize files
+      id: organize
+      run: |
+        mkdir packages
+        mv -f openwrt/bin/packages/*/jell/* packages || true
+        mv -f openwrt/.config packages/${{matrix.target}}.config || true
+        # cp -Rf openwrt/bin/packages/*/packages/python3* packages/
+        echo "FIRMWARE=$PWD/packages" >> $GITHUB_ENV
+        Emoji=("🍂" "🌸" "🐌" "🌿" "🐤" "💦" "💤" "⛅" "🌈" "🔥" "💭" "🍭" "🎉" "🎁" "🎈" "🐾" "🎨" "💋" "🍓" "🍕" "🍉" "💐" "🌴" "🙈" "🤡" "🍡")
+        echo "EMOJI=${Emoji[$[$RANDOM % ${#Emoji[@]}]]}" >> $GITHUB_ENV
+        if [[ $(ls -l openwrt/error* | grep "^-" | wc -l) -le 0 ]]; then
+           echo "NAME=${Emoji[$[$RANDOM % ${#Emoji[@]}]]} ${{ env.date2 }} ${{matrix.target}} ${{ env.EMOJI }}" >> $GITHUB_ENV
+        else
+           echo "NAME=💤 ${{ env.date2 }} ${{matrix.target}} 💤" >> $GITHUB_ENV
+        fi
+
+    - name: Upload firmware to cowtransfer
+      if: env.UPLOAD_FIRMWARE_TO_COWTRANSFER == 'true'
+      continue-on-error: true
+      run: |
+        curl -fsSL git.io/file-transfer | sh
+        cowurl=$(./transfer cow --block 2621440 -s --no-progress ${FIRMWARE})
+        cowurl=$(echo $cowurl | grep -o -E "https[^ ]*")
+        echo "COWURL=$cowurl" >> $GITHUB_ENV
+        echo "Download Link: ${{ env.EMOJI }} $cowurl ${{ env.EMOJI }} 🌿"
+ 
+    - name: Upload firmware to WeTransfer
+      if: env.UPLOAD_FIRMWARE_TO_WETRANSFER == 'true'
+      continue-on-error: true
+      run: |
+        curl -fsSL git.io/file-transfer | sh
+        wetrans=$(./transfer wet -s -p 16 --no-progress ${FIRMWARE})
+        wetrans=$(echo $wetrans | grep -o -E "https[^ ]*")
+        echo "WETRANS=$wetrans" >> $GITHUB_ENV
+        echo "Download Link: ${{ env.EMOJI }} $wetrans ${{ env.EMOJI }} 🌿"
+        
+    - name: Create release
+      id: create_release
+      if: env.REPO_TOKEN && env.UPLOAD_FIRMWARE_FOR_RELEASE == 'true'
+      continue-on-error: true
+      run: |
+        echo -e "定时更新插件，推送发布 💤:\n" >> release.txt
+        echo -e "[下载链接] (https://${{ secrets.REMOTE_HOST }}/packages/${{matrix.target}}/)\n" >> release.txt
+        [ ${{ env.WETRANS }} ] && echo -e "[WeTransfer] (${{ env.WETRANS }} 🗽)\n" >> release.txt
+        [ ${{ env.COWURL }} ] && echo -e "[奶牛上传] (${{ env.COWURL }} 🮮)\n" >> release.txt
+        [ ${{ env.NOTICE }} ] && echo -e "${{ env.NOTICE }}" >> release.txt || true
+
+    - name: Upload packages for release
+      uses: softprops/action-gh-release@v2
+      continue-on-error: true
+      if: env.REPO_TOKEN && env.UPLOAD_FIRMWARE_FOR_RELEASE == 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.TOKEN_KENZO }}
+      with:
+        files: |
+            packages/*
+            openwrt/error*.log
+        name: ${{ env.NAME }}
+        tag_name: ${{ env.date }}_${{matrix.target}}
+        body_path: release.txt
+
+    - name: Upload packages for artifact
+      uses: actions/upload-artifact@main
+      continue-on-error: true
+      if: env.UPLOAD_FIRMWARE_FOR_ARTIFACT == 'true'
+      with:
+        name: ${{ env.date3 }} ${{matrix.target}}
+        path: packages
