@@ -9,9 +9,9 @@
 name: Repo-1
 
 on: 
-  # push: 
-  #   branches:
-  #     - master
+   push: 
+     branches:
+       - master
   schedule:
     - cron: 0 2 * * *
   watch:
