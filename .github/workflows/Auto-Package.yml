@@ -106,8 +106,10 @@ jobs:
         echo "SDK_VER=$SDK_VER" >> $GITHUB_ENV
         if [ "$SDK_VER" = "24.10" ]; then
           GCC="13.3.0"
+          REPO_BRANCH="24.10-SNAPSHOT"
         else
           GCC="14.3.0"
+          REPO_BRANCH="25.12-SNAPSHOT"
         fi
         echo "GCC=$GCC" >> $GITHUB_ENV
         echo "REPO_BRANCH=$REPO_BRANCH" >> $GITHUB_ENV
