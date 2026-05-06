@@ -39,7 +39,7 @@ jobs:
       fail-fast: false
       matrix:
         target: ["${{ github.event.client_payload.target }}"]
-        sdk: [24.10, 25.12]
+        sdk: ["24.10", "25.12"]
         
     steps:
     - name: Checkout
