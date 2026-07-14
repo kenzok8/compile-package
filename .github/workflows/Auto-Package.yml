@@ -28,6 +28,7 @@ env:
   TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
   TZ: Asia/Shanghai
+  CMAKE_POLICY_VERSION_MINIMUM: 3.5
 
 jobs:
   build:
